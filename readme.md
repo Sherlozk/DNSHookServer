@@ -6,6 +6,10 @@
 [DNS 请求报文详解(上)](https://juejin.im/post/5ab719c151882577b45ef9d9#heading-9)
 [DNS 请求报文详解(下)](https://juejin.im/post/5ab71be3f265da238d50acac)
 
+## Rely
+    
+    $ go get github.com/imroc/biu
+
 ## Usage
 ``` go
 $ sudo go run dns.go -h                                                                                                                                   
