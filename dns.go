@@ -193,7 +193,7 @@ func hookDNS(header dnsHeader, question dnsQuestion, ip string) []byte {
 	respone.header.aa = 0
 	respone.header.tc = 0
 	respone.header.rd = 1
-	respone.header.ra = 1
+	respone.header.ra = 0
 	respone.header.z = 0
 	respone.header.rcode = 0
 	respone.header.qdcount = 1
@@ -249,10 +249,10 @@ func reslove(respone dnsRespone) []byte {
 	writebytesToBuffer(buf,respone.answer.rdata,int64(offset)+10)
 
 
-	//log.Printf("buf: %x",buf)
+	//log.Printf("hook: %x",buf)
 
 
-	return nil
+	return buf
 }
 
 
@@ -379,12 +379,12 @@ func main() {
 
 		//log.Printf("<%s> %x \n", remoteAddr, data[:n])
 
-		hookDNS(header, question,"127.0.0.1")
+		//hookDNS(header, question,"127.0.0.1")
 
 		//如果没有配置需要代理的域名或者请求解析的域名不在配置文件内，转发给8.8.8.8处理
 		//这里不做协议类型做判断，完全由用户需要而选择拦截与否
 		if dnsMap == nil || dnsMap[parseDomain(question.qname)] == ""{
-			log.Printf("forward %s to %s",question.qname,remoteDns)
+			log.Printf("forward %s to %s",parseDomain(question.qname),remoteDns)
 			_, writeErr := listener.WriteToUDP(forwordRequst2(data[:n],remoteDns), remoteAddr)
 
 			if writeErr != nil {
@@ -392,15 +392,18 @@ func main() {
 			}
 			continue
 		}
-		//log.Printf("real : %x", forwordRequst2(data[:n],remoteDns))
+		log.Printf("real : %x", forwordRequst2(data[:n],remoteDns))
+		log.Printf("hook : %x", hookDNS(header,question,dnsMap[parseDomain(question.qname)]))
 		rsp := hookDNS(header,question,dnsMap[parseDomain(question.qname)])
 		_, writeErr := listener.WriteToUDP(rsp, remoteAddr)
 		//_, writeErr := listener.WriteToUDP(forwordRequst2(data[:n],remoteDns), remoteAddr)
 
 		if writeErr != nil {
 			log.Printf("error during write: %s", writeErr)
+		}else {
+			log.Printf("hook %s return %s",parseDomain(question.qname), dnsMap[parseDomain(question.qname)] )
 		}
-		log.Printf("hook %s return %s",parseDomain(question.qname), dnsMap[parseDomain(question.qname)] )
+
 
 
 
