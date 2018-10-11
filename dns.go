@@ -392,8 +392,8 @@ func main() {
 			}
 			continue
 		}
-		log.Printf("real : %x", forwordRequst2(data[:n],remoteDns))
-		log.Printf("hook : %x", hookDNS(header,question,dnsMap[parseDomain(question.qname)]))
+		//log.Printf("real : %x", forwordRequst2(data[:n],remoteDns))
+		//log.Printf("hook : %x", hookDNS(header,question,dnsMap[parseDomain(question.qname)]))
 		rsp := hookDNS(header,question,dnsMap[parseDomain(question.qname)])
 		_, writeErr := listener.WriteToUDP(rsp, remoteAddr)
 		//_, writeErr := listener.WriteToUDP(forwordRequst2(data[:n],remoteDns), remoteAddr)
