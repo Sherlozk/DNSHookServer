@@ -12,6 +12,7 @@ import(
 	"bytes"
 	"encoding/binary"
 	"flag"
+	"time"
 )
 
 
@@ -108,7 +109,7 @@ func getQuestion(data []byte) dnsQuestion {
 	return *question
 }
 
-func forwordRequst2(data []byte, remoteDns string) []byte {
+func forwardRequst2(data []byte, remoteDns string) []byte {
 	// 创建连接
 	socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
 		IP:   net.ParseIP(remoteDns),
@@ -118,6 +119,10 @@ func forwordRequst2(data []byte, remoteDns string) []byte {
 		log.Println("连接失败!", err)
 		return nil
 	}
+	t := time.Now()
+
+	socket.SetDeadline(t.Add(time.Duration(5*time.Second)))
+
 	defer socket.Close()
 	// 发送数据
 	_, err = socket.Write(data)
@@ -355,10 +360,15 @@ func main() {
 	//监听53端口，接收 dns 解析请求
 	listener,err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("0.0.0.0"), Port:53})
 
+	//t := time.Now()
+	//
+	//listener.SetDeadline(t.Add(time.Duration(5*time.Second)))
+
 	if err != nil {
 		 log.Println(err)
 		 return
 	}
+	defer listener.Close()
 
 	log.Println("Listening Local："+listener.LocalAddr().String())
 
@@ -385,18 +395,18 @@ func main() {
 		//这里不做协议类型做判断，完全由用户需要而选择拦截与否
 		if dnsMap == nil || dnsMap[parseDomain(question.qname)] == ""{
 			log.Printf("forward %s to %s",parseDomain(question.qname),remoteDns)
-			_, writeErr := listener.WriteToUDP(forwordRequst2(data[:n],remoteDns), remoteAddr)
+			_, writeErr := listener.WriteToUDP(forwardRequst2(data[:n],remoteDns), remoteAddr)
 
 			if writeErr != nil {
 				log.Printf("error during write: %s", writeErr)
 			}
 			continue
 		}
-		//log.Printf("real : %x", forwordRequst2(data[:n],remoteDns))
+		//log.Printf("real : %x", forwardRequst2(data[:n],remoteDns))
 		//log.Printf("hook : %x", hookDNS(header,question,dnsMap[parseDomain(question.qname)]))
 		rsp := hookDNS(header,question,dnsMap[parseDomain(question.qname)])
 		_, writeErr := listener.WriteToUDP(rsp, remoteAddr)
-		//_, writeErr := listener.WriteToUDP(forwordRequst2(data[:n],remoteDns), remoteAddr)
+		//_, writeErr := listener.WriteToUDP(forwardRequst2(data[:n],remoteDns), remoteAddr)
 
 		if writeErr != nil {
 			log.Printf("error during write: %s", writeErr)
